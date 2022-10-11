@@ -1,33 +1,15 @@
 AWSTemplateFormatVersion: 2010-09-09
-#ref: https://godof.cloud/vpc-with-nat-gateway/ & https://github.com/godof-cloud/aws-vpc-natgateway & https://www.infoq.com/articles/aws-vpc-cloudformation/
+#ref: https://godof.cloud/vpc-with-nat-gateway/ & https://www.infoq.com/articles/aws-vpc-cloudformation/
 
-Parameters:
-  prefix:
-    Type: String
-    Description: Used to prefix stack elements, such as dev, test or prod
-    Default: custom
-  VpcCidrBlock:
-    Type: String
-  VpcMaskLength:
-    Type: String
-    Default: 16
-  SubnetCidrBlocks:
-    Type: CommaDelimitedList
-    Description: 4 Subnet IP blocks, comma separated
-  SubnetMaskLength:
-    Type: String
-    Default: 24
 Resources:
   VPC:
     Type: AWS::EC2::VPC
     Properties:
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      CidrBlock: !Join ["/",[!Ref VpcCidrBlock,!Ref VpcMaskLength]]
+      CidrBlock: 10.64.0.0/16
       Tags:
        -
          Key: Name
-         Value: !Join ["-",[!Ref prefix,"vpc"]]
+         Value: BDS-vpc
          
 # Subnets-------------------------
 
@@ -35,45 +17,45 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: us-east-1a
-      CidrBlock: !Join ["/",[!Select [0,!Ref SubnetCidrBlocks], !Ref SubnetMaskLength]]
+      CidrBlock: 10.64.0.0/24
       VpcId: !Ref VPC
       Tags:
        -
          Key: Name
-         Value: !Join ["-",[!Ref prefix,"Public",!Ref AWS::Region,"Subnet"]]
+         Value: Public-E1A-Subnet
          
   Subnet2:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: us-east-1b
-      CidrBlock: !Join ["/",[!Select [1,!Ref SubnetCidrBlocks], !Ref SubnetMaskLength]]
+      CidrBlock: 10.64.1.0/24
       VpcId: !Ref VPC
       Tags:
        -
          Key: Name
-         Value: !Join ["-",[!Ref prefix,"Public-E1B","Subnet"]]
+         Value: Public-E1B-Subnet
          
   Subnet3:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: us-east-1a
-      CidrBlock: !Join ["/",[!Select [2,!Ref SubnetCidrBlocks], !Ref SubnetMaskLength]]
+      CidrBlock: 10.64.2.0/24
       VpcId: !Ref VPC
       Tags:
        -
          Key: Name
-         Value: !Join ["-",[!Ref prefix,"Private-E1A","Subnet"]]
+         Value: Private-E1A-Subnet
 
   Subnet4:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: us-east-1b
-      CidrBlock: !Join ["/",[!Select [3,!Ref SubnetCidrBlocks], !Ref SubnetMaskLength]]
+      CidrBlock: 10.64.3.0/24
       VpcId: !Ref VPC
       Tags:
        -
          Key: Name
-         Value: !Join ["-",[!Ref prefix,"Private-E1B","Subnet"]]
+         Value: Private-E1B-Subnet
 
 # Route Tables --------------------
   PublicRouteTable:
@@ -83,7 +65,7 @@ Resources:
       Tags:
        -
          Key: Name
-         Value: !Join ["-",[!Ref prefix,"Public Route Table"]]
+         Value: Public Route Table
         
   PrivateRouteTable:
     Type:  AWS::EC2::RouteTable
@@ -92,7 +74,7 @@ Resources:
       Tags:
        -
          Key: Name
-         Value: !Join ["-",[!Ref prefix,"Private Route Table"]]
+         Value: Private Route Table
          
   PublicRouteTableAssociation1:
     Type:  AWS::EC2::SubnetRouteTableAssociation
@@ -125,7 +107,7 @@ Resources:
       Tags:
        -
          Key: Name
-         Value: !Join ["-",[!Ref prefix,"Internet Gateway"]]
+         Value: BDS-IG
 
   VpcIgAttachment:
     Type:  AWS::EC2::VPCGatewayAttachment
@@ -140,29 +122,3 @@ Resources:
         DestinationCidrBlock: '0.0.0.0/0'
         GatewayId: !Ref InternetGateway
           
-# NAT Gateway ------------------------------------
-  ElasticIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-      Tags: 
-       -
-         Key: Name
-         Value: !Join ["-",[!Ref prefix,"NAT GW Elastic IP"]]
-
-  NatGateway:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt ElasticIP.AllocationId
-      SubnetId: !Ref Subnet1
-      Tags:
-       -
-         Key: Name
-         Value: !Join ["-",[!Ref prefix,"NAT Gateway"]]
-
-  Route2Ng:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      DestinationCidrBlock: '0.0.0.0/0'
-      NatGatewayId: !Ref NatGateway
