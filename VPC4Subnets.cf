@@ -166,3 +166,23 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable
       DestinationCidrBlock: '0.0.0.0/0'
       NatGatewayId: !Ref NatGateway
+      
+# Subnet Groups -------------------------------------
+  PublicSG:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Public subnet group
+      DBSubnetGroupName: !Join ["-",[!Ref prefix,"Public-SubnetGroup"
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+        
+  PrivateSG:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnet group
+      DBSubnetGroupName: !Join ["-",[!Ref prefix,"Private-SubnetGroup"
+      SubnetIds:
+        - !Ref Subnet3
+        - !Ref Subnet4
+        
